@@ -10,14 +10,14 @@
             id="{{ i }}"
             value="{{ channel }}"
             min="0"
-            max="255"
+            max="100"
         />
         {% endfor %}
-        <div id="console"></div>
+        <div id="console"><span class="mode orange">LIVE: Cue 1: </span><span id="commandarea"> </span><span id="done" style="display: none;">◆</span></div>
         <style>
             body {
                 background-color: #000;
-                font-family:sans-serif
+                font-family: sans-serif;
             }
             input[type="range"] {
                 writing-mode: bt-lr; /* IE */
@@ -55,6 +55,12 @@
                 });
             });
 
+            function updateSliders(channels) {
+                channels.forEach((level, i) => {
+                    document.getElementById(i).value = level;
+                })
+            }
+
             //console
             const keyboardCommands = {
                 q: "Cue",
@@ -63,9 +69,8 @@
                 r: "Record",
                 u: "Update",
                 o: "Out",
-                Enter: "◆"
             };
-            const commandInput = document.querySelector("#console");
+            const commandInput = document.querySelector("#commandarea");
 
             function isInt(num) {
                 return !Number.isNaN(parseInt(num));
@@ -76,7 +81,12 @@
                 symbols: [],
                 mode: "LIVE",
                 cue: "1",
+                done: false,
                 append: function (input) {
+                    if(this.done) {
+                        this.clear();
+                    }
+
                     const isNumber = parseInt(input) != NaN;
 
                     if (isNumber) {
@@ -90,38 +100,78 @@
                     this.update();
                 },
                 update: function () {
-                    if(this.symbols.length == 0) {
+                    if (this.symbols.length == 0) {
                         this.setText("");
-                        return
+                        return;
                     }
                     let text = this.symbols.reduce((prev, cur, i) => {
-                        if(isInt(prev[prev.length - 1]) && isInt(cur)) {
+                        if (isInt(prev[prev.length - 1]) && isInt(cur)) {
                             return prev + cur;
                         }
                         return prev + ` ${cur}`;
-                    })
+                    });
                     this.setText(text);
                 },
-                setText: function(text) {
-                    this.text = `<span class="mode orange">${this.mode}: Cue ${this.cue}: </span> ${text}`;
+                setText: function (text) {
+                    this.text = text;
                     commandInput.innerHTML = this.text;
                 },
-                backspace: function() {
+                backspace: function () {
+                    if(this.done) {
+                        this.clear();
+                        return;
+                    }
                     this.symbols.pop();
                     this.update();
                 },
+                enter: function () {
+                    if(this.done) return;
+                    if(isInt(this.symbols[this.symbols.length - 1]) && !isInt(this.symbols[this.symbols.length - 2])) {
+                        this.append('0');
+                    }
+                    document.querySelector('#done').style.display = 'inline';
+                    this.send();
+                    this.done = true;
+                },
+                clear: function() {
+                    this.symbols = [];
+                    this.done = false;
+                    document.querySelector('#done').style.display = 'none';
+                    this.update();
+                },
+                send: function() {
+                    this.update();
+                    fetch('/consoleCommand', {
+                        method: 'POST',
+                        mode: 'cors',
+                        cache: 'no-cache',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ text: this.text, symbols: this.symbols})
+                    }).then(async response => {
+                        const json = await response.json();
+                        console.log(json);
+                        updateSliders(json);
+                    })
+                }
             };
             command.update();
 
+            //Listen for keydowns
             window.addEventListener("keydown", (event) => {
                 const key = event.key;
-                console.log(key, keyboardCommands[key]);
-                if(key == 'Backspace') {
+                const keyMeaning = keyboardCommands[key];
+                console.log(key, keyMeaning);
+                if (key == "Backspace") {
                     command.backspace();
-                } else {
+                } else if(key == "Enter") {
+                    command.enter();
+                } else if (keyMeaning || isInt(key)) {
                     command.append(
-                    keyboardCommands[key] ? keyboardCommands[key] : key
-                );
+                        keyboardCommands[key] ? keyboardCommands[key] : key
+                    );
                 }
             });
         </script>
