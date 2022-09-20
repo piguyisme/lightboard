@@ -4,20 +4,29 @@
         <title>Online lightboard</title>
     </head>
     <body>
+      <div id="sliders">
         {% for i, channel in enumerate(channels) %}
+        <div id="{{i}}" class="slidercontainer">
         <input
             type="range"
-            id="{{ i }}"
+            id="s{{ i }}"
             value="{{ channel }}"
             min="0"
             max="100"
+            for="{{i}}"
+            disabled
         />
+        <p>{{i}}</p>
+        <p id="p{{i}}">{{channel}}%</p>
+        </div>
         {% endfor %}
+      </div>
         <div id="console"><span class="mode orange">LIVE: Cue 1: </span><span id="commandarea"> </span><span id="done" style="display: none;">◆</span></div>
         <style>
             body {
                 background-color: #000;
                 font-family: sans-serif;
+                color: white;
             }
             input[type="range"] {
                 writing-mode: bt-lr; /* IE */
@@ -25,6 +34,17 @@
                 width: 8px;
                 height: 175px;
                 padding: 0 5px;
+            }
+            #sliders {
+              display: flex;
+            }
+            .slidercontainer {
+              background-color: #005;
+              margin: 5px;
+              padding: 5px;
+            }
+            .slidercontainer p {
+              text-align: center;
             }
             #console {
                 width: 90vw;
@@ -51,13 +71,14 @@
                     if (currentTime - latestUpdateTime < 10) return;
 
                     latestUpdateTime = currentTime;
-                    fetch(`/setChannel/${el.id}/${el.value}`);
+                    fetch(`/setChannel/${el.getAttribute('for')}/${el.value}`);
                 });
             });
 
             function updateSliders(channels) {
                 channels.forEach((level, i) => {
-                    document.getElementById(i).value = level;
+                    document.getElementById("s" + i).value = level;
+                    document.getElementById("p" + i).innerText = level + "%";
                 })
             }
 
@@ -87,7 +108,7 @@
                         this.clear();
                     }
 
-                    const isNumber = parseInt(input) != NaN;
+                    const isNumber = isInt(input);
 
                     if (isNumber) {
                         if (this.symbols.length === 0) {
@@ -126,7 +147,7 @@
                 },
                 enter: function () {
                     if(this.done) return;
-                    if(isInt(this.symbols[this.symbols.length - 1]) && !isInt(this.symbols[this.symbols.length - 2])) {
+                    if(isInt(this.symbols[this.symbols.length - 1]) && this.symbols[this.symbols.length - 2] == "@") {
                         this.append('0');
                     }
                     document.querySelector('#done').style.display = 'inline';

@@ -6,15 +6,20 @@ import tkinter as tk
 
 app = Flask(__name__)
 
-channels = [0, 0, 0, 0, 0]
+channels = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+cues = [{
+  "number": 1,
+  "time": 5,
+  "channels": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+}]
 
 # Start local UI
-root = tk.Tk()
-root.title('Channel Monitor')
-root.geometry('600x400+50+50')
+# root = tk.Tk()
+# root.title('Channel Monitor')
+# root.geometry('600x400+50+50')
 
-message = tk.Label(root, text="Hello, World!")
-message.pack()
+# message = tk.Label(root, text="Hello, World!")
+# message.pack()
 
 
 def handle_command(stringCommand, arrayCommand):
@@ -40,7 +45,7 @@ def set_channel(channel, level):
     channels[channel] = level
     print(channels)
     jsonChannels = json.JSONEncoder().encode(channels)
-    message['text'] = jsonChannels
+    # message['text'] = jsonChannels
     return jsonChannels
 
 
@@ -55,4 +60,4 @@ if __name__ == '__main__':
     app.debug = True
     app.run()
 
-root.mainloop()
+# root.mainloop()
